@@ -1,0 +1,12 @@
+.git
+.cache
+.pnpm-store
+**/node_modules
+**/dist
+**/test-output
+**/coverage
+**/.wxt
+**/.output
+apps/*/data*
+apps/*/out
+.DS_Store

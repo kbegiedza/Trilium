@@ -1,0 +1,70 @@
+name: trilium-dev
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile
+    init: true
+    working_dir: /workspace
+    ports:
+      - "127.0.0.1:${TRILIUM_DEV_PORT:-7772}:8080"
+      # Vite derives its WebSocket port from the internal application port.
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - dependencies:/workspace/node_modules
+      - pnpm-store:/pnpm/store
+      - data:/var/lib/trilium-dev
+      - browsers:/root/.cache/ms-playwright
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /workspace
+          initial_sync: true
+          ignore:
+            - .git/
+            - .cache/
+            - .pnpm-store/
+            - node_modules/
+            - "**/node_modules/"
+            - "**/dist/"
+            - "**/test-output/"
+            - "**/.wxt/"
+            - "**/.output/"
+            - "apps/*/data*/"
+            - package.json
+            - pnpm-lock.yaml
+            - pnpm-workspace.yaml
+            - docker/dev/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+        - action: rebuild
+          path: pnpm-workspace.yaml
+        - action: rebuild
+          path: docker/dev
+    environment:
+      TRILIUM_HOST: 0.0.0.0
+      TRILIUM_PORT: "8080"
+      TRILIUM_DATA_DIR: /var/lib/trilium-dev
+      PNPM_STORE_DIR: /pnpm/store
+    command:
+      - sh
+      - -ec
+      - |
+        pnpm install --frozen-lockfile --store-dir /pnpm/store
+        exec pnpm --filter @triliumnext/server start-no-dir
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health-check"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10m
+      retries: 4
+
+volumes:
+  dependencies:
+  pnpm-store:
+  data:
+  browsers:
